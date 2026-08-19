@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroHub | متجر الأجهزة الكهربائية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --teal-950:#052421;
+    --teal-900:#0a3733;
+    --teal-700:#0d6b62;
+    --teal-600:#0f8a7c;
+    --teal-500:#14a596;
+    --navy:#0b1a2b;
+    --ivory:#f6f4ef;
+    --ivory-2:#efece3;
+    --ink:#12201c;
+    --muted:#5b6a66;
+    --red:#e0473f;
+    --gold:#c9974a;
+    --line: rgba(11,26,43,0.08);
+    --radius: 18px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    font-family:'Tajawal', sans-serif;
+    background: var(--ivory);
+    color: var(--ink);
+    padding-bottom: 84px;
+  }
+  h1,h2,h3,.brand,.cat-name,.price,.section-title{ font-family:'Cairo', sans-serif; }
+  img{ max-width:100%; display:block; }
+  button{ font-family:inherit; cursor:pointer; border:none; }
+  ::selection{ background: var(--teal-500); color:#fff; }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background: linear-gradient(180deg, var(--teal-950), var(--teal-900));
+    color:#fff;
+    padding: 14px 18px 20px;
+    border-radius: 0 0 22px 22px;
+    box-shadow: 0 12px 30px -18px rgba(5,36,33,0.6);
+  }
+  .topbar-row{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; font-size:20px; letter-spacing:0.3px;
+  }
+  .brand .dot{
+    width:10px; height:10px; border-radius:50%;
+    background: var(--gold);
+    box-shadow:0 0 10px var(--gold);
+  }
+  .icon-btn{
+    width:38px; height:38px; border-radius:50%;
+    background: rgba(255,255,255,0.08);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; position:relative;
+  }
+  .search-wrap{
+    background:#fff; border-radius:14px; padding:12px 16px;
+    display:flex; align-items:center; gap:10px; color:var(--muted);
+  }
+  .search-wrap input{
+    border:none; outline:none; flex:1; font-family:'Tajawal'; font-size:14px; background:transparent;
+  }
+
+  .hero{
+    margin:16px 18px 0;
+    border-radius: var(--radius);
+    background: linear-gradient(120deg, var(--teal-700), var(--teal-600) 60%, #0f6f63);
+    color:#fff;
+    padding: 22px 20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image: radial-gradient(circle at 85% 20%, rgba(255,255,255,0.14), transparent 40%),
+                       radial-gradient(circle at 100% 90%, rgba(201,151,74,0.25), transparent 45%);
+  }
+  .hero-content{ position:relative; z-index:1; max-width:64%; }
+  .hero h2{ font-size:19px; font-weight:800; margin-bottom:6px; }
+  .hero p{ font-size:13px; opacity:0.9; margin-bottom:12px; line-height:1.5; }
+  .hero button{
+    background:#fff; color:var(--teal-900); font-weight:700; font-size:13px;
+    padding:9px 18px; border-radius:10px;
+  }
+
+  /* ---------- Sections ---------- */
+  .section{ padding: 22px 18px 4px; }
+  .section-head{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .section-title{ font-size:16px; font-weight:800; }
+  .section-link{ font-size:12px; color: var(--teal-600); font-weight:700; }
+
+  /* categories */
+  .cats{
+    display:flex; gap:12px; overflow-x:auto; padding-bottom:6px;
+    scrollbar-width:none;
+  }
+  .cats::-webkit-scrollbar{ display:none; }
+  .cat-chip{
+    flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding:4px;
+    min-width:64px;
+  }
+  .cat-chip .ico{
+    width:56px; height:56px; border-radius:16px;
+    background:#fff; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .cat-chip.active .ico, .cat-chip:hover .ico{
+    background: var(--teal-600); color:#fff; transform: translateY(-2px);
+    box-shadow: 0 10px 18px -10px rgba(15,138,124,0.6);
+  }
+  .cat-name{ font-size:11.5px; font-weight:700; color:var(--ink); white-space:nowrap; }
+
+  /* products grid */
+  .grid{
+    display:grid; grid-template-columns: repeat(2, 1fr); gap:14px;
+  }
+  .p-card{
+    background:#fff; border-radius:16px; padding:12px; position:relative;
+    border:1px solid var(--line);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .p-card:hover{ transform: translateY(-3px); box-shadow: 0 16px 30px -20px rgba(5,36,33,0.35); }
+  .p-badge{
+    position:absolute; top:10px; right:10px; z-index:2;
+    background: var(--red); color:#fff; font-size:11px; font-weight:700;
+    padding:3px 8px; border-radius:8px;
+  }
+  .p-fav{
+    position:absolute; top:10px; left:10px; z-index:2;
+    width:28px; height:28px; border-radius:50%; background:#fff;
+    display:flex; align-items:center; justify-content:center; color:var(--muted);
+    box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  }
+  .p-fav.active{ color: var(--red); }
+  .p-img{
+    width:100%; height:120px; border-radius:12px; overflow:hidden;
+    background: var(--ivory-2); display:flex; align-items:center; justify-content:center;
+    margin-bottom:10px;
+  }
+  .p-img img{ width:100%; height:100%; object-fit:cover; }
+  .p-cat{ font-size:11px; color:var(--teal-600); font-weight:700; margin-bottom:2px; }
+  .p-name{ font-size:13.5px; font-weight:700; line-height:1.4; margin-bottom:6px; min-height:36px; }
+  .p-price-row{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .price{ font-size:15px; font-weight:800; color: var(--teal-900); }
+  .price-old{ font-size:11.5px; color:var(--muted); text-decoration:line-through; }
+  .p-actions{ display:flex; gap:6px; margin-top:10px; }
+  .p-actions button{
+    flex:1; border-radius:10px; padding:8px 6px; font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+  }
+  .btn-wa{ background:#25D366; color:#fff; }
+  .btn-call{ background: var(--ivory-2); color: var(--teal-900); }
+  .btn-del{ background:#fdecea; color:var(--red); flex:0 0 auto; width:34px; }
+
+  .empty-state{
+    text-align:center; padding: 40px 20px; color:var(--muted);
+  }
+  .empty-state .ico{ font-size:34px; margin-bottom:10px; }
+
+  /* ---------- FAB ---------- */
+  .fab{
+    position:fixed; left:18px; bottom:86px; z-index:45;
+    width:54px; height:54px; border-radius:50%;
+    background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:26px; box-shadow: 0 14px 26px -10px rgba(15,138,124,0.6);
+  }
+
+  /* ---------- Bottom nav ---------- */
+  .bottom-nav{
+    position:fixed; bottom:0; left:0; right:0; z-index:40;
+    background:#fff; border-top:1px solid var(--line);
+    display:flex; justify-content:space-around; padding:8px 6px 10px;
+  }
+  .nav-item{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--muted); font-size:10.5px; font-weight:700; background:none;
+    padding:4px 8px; position:relative;
+  }
+  .nav-item.active{ color: var(--teal-700); }
+  .nav-item .n-ico{ font-size:19px; }
+  .nav-badge{
+    position:absolute; top:-2px; left:2px;
+    background:var(--red); color:#fff; font-size:9px; font-weight:800;
+    width:15px; height:15px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  }
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(5,20,18,0.55); backdrop-filter: blur(2px);
+    z-index:60; display:none; align-items:flex-end; justify-content:center;
+  }
+  .overlay.open{ display:flex; }
+  .sheet{
+    background:#fff; width:100%; max-width:480px; border-radius:22px 22px 0 0;
+    max-height:88vh; overflow-y:auto; padding:20px 20px 26px;
+    animation: slideUp .28s ease;
+  }
+  @keyframes slideUp{ from{ transform:translateY(30px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+  .sheet-handle{ width:40px; height:4px; background:var(--line); border-radius:4px; margin:0 auto 16px; }
+  .sheet h3{ font-size:17px; margin-bottom:14px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--ink); }
+  .field input, .field select, .field textarea{
+    width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    font-family:'Tajawal'; font-size:13.5px; outline:none; background: var(--ivory);
+  }
+  .field textarea{ resize:vertical; min-height:64px; }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  .upload-box{
+    border:1.5px dashed var(--line); border-radius:12px; padding:16px;
+    text-align:center; color:var(--muted); font-size:12.5px; position:relative; overflow:hidden;
+    background: var(--ivory);
+  }
+  .upload-box img{ max-height:110px; margin:0 auto 8px; border-radius:8px; }
+  .upload-box input[type=file]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .sheet-actions{ display:flex; gap:10px; margin-top:16px; }
+  .btn{
+    flex:1; padding:12px; border-radius:12px; font-weight:700; font-size:14px;
+  }
+  .btn-primary{ background: var(--teal-700); color:#fff; }
+  .btn-ghost{ background: var(--ivory-2); color:var(--ink); }
+
+  /* product detail sheet */
+  .pd-img{ width:100%; height:220px; border-radius:16px; overflow:hidden; background:var(--ivory-2); margin-bottom:10px; }
+  .pd-img img{ width:100%; height:100%; object-fit:cover; }
+  .pd-thumbs{ display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; }
+  .pd-thumbs::-webkit-scrollbar{ display:none; }
+  .pd-thumbs img{ width:56px; height:56px; border-radius:10px; object-fit:cover; border:2px solid transparent; cursor:pointer; flex:0 0 auto; }
+  .pd-thumbs img.active{ border-color:var(--teal-600); }
+  .pd-cat{ font-size:12px; color:var(--teal-600); font-weight:700; }
+  .pd-name{ font-size:19px; font-weight:800; margin:4px 0 8px; }
+  .pd-price-row{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .pd-price{ font-size:21px; font-weight:800; color:var(--teal-900); }
+  .pd-old{ font-size:13px; color:var(--muted); text-decoration:line-through; }
+  .pd-desc{ font-size:13.5px; color:var(--muted); line-height:1.7; margin-bottom:16px; }
+
+  .toast{
+    position:fixed; bottom:96px; left:50%; transform:translateX(-50%);
+    background: var(--navy); color:#fff; padding:10px 18px; border-radius:12px;
+    font-size:13px; font-weight:600; z-index:80; opacity:0; pointer-events:none;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+
+  @media (min-width:560px){
+    .grid{ grid-template-columns: repeat(3,1fr); }
+  }
+
+  /* ---------- Login screen ---------- */
+  .login-screen{
+    position:fixed; inset:0; z-index:100;
+    background: radial-gradient(ellipse at 50% 0%, var(--teal-700), var(--teal-950) 65%);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    width:100%; max-width:380px; background:#fff; border-radius:22px;
+    padding:32px 26px; text-align:center;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5);
+  }
+  .login-card .dot-logo{
+    width:52px; height:52px; border-radius:16px; margin:0 auto 14px;
+    background: linear-gradient(135deg, var(--teal-600), var(--teal-900));
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px;
+  }
+  .login-card h2{ font-size:19px; margin-bottom:6px; }
+  .login-card p{ font-size:13px; color:var(--muted); margin-bottom:22px; line-height:1.6; }
+  .login-card .field{ text-align:right; }
+  .login-error{ color:var(--red); font-size:12px; margin-top:6px; display:none; }
+  .login-note{ font-size:11px; color:var(--muted); margin-top:16px; line-height:1.6; }
+
+  /* ---------- User pill in topbar ---------- */
+  .user-pill{
+    display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,0.1); color:#fff; font-size:11px; font-weight:700;
+    padding:6px 10px; border-radius:20px;
+    max-width:190px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  .user-pill .lo{ opacity:0.7; font-size:10px; }
+
+  /* ---------- Analytics ---------- */
+  .stat-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+  .stat-card{
+    background: var(--ivory); border:1px solid var(--line); border-radius:14px; padding:14px;
+  }
+  .stat-card .num{ font-size:22px; font-weight:800; color:var(--teal-900); font-family:'Cairo'; }
+  .stat-card .lbl{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .bar-row{ margin-bottom:10px; }
+  .bar-row .bar-top{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; }
+  .bar-track{ background:var(--ivory-2); border-radius:8px; height:8px; overflow:hidden; }
+  .bar-fill{ background: linear-gradient(90deg, var(--teal-500), var(--teal-700)); height:100%; border-radius:8px; }
+  .analytics-sec-title{ font-size:13px; font-weight:700; margin: 18px 0 10px; color:var(--ink); }
+  .visitor-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px;
+  }
+  .visitor-row:last-child{ border-bottom:none; }
+  .visitor-row .vt{ color:var(--muted); font-size:11px; }
+</style>
+</head>
+<body>
+
+<div id="appRoot">
+
+<div class="topbar">
+  <div class="topbar-row">
+    <div class="brand"><span class="dot"></span> ElectroHub</div>
+  </div>
+  <div class="search-wrap">
+    <span>🔍</span>
+    <input id="searchInput" placeholder="ابحث عن منتج أو موديل" oninput="renderProducts()">
+  </div>
+  <div class="hero">
+    <div class="hero-content">
+      <h2>تشكيلة الأجهزة الجديدة</h2>
+      <p>أفضل الأجهزة الكهربائية بأسعار مميزة وضمان موثوق</p>
+      <button onclick="document.getElementById('gridTitle').scrollIntoView({behavior:'smooth'})">تسوق الآن</button>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">الأقسام</div>
+  </div>
+  <div class="cats" id="catsRow"></div>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title" id="gridTitle">جميع المنتجات</div>
+    <div class="section-link" id="resultCount"></div>
+  </div>
+  <div class="grid" id="productGrid"></div>
+</div>
+
+<!-- bottom nav placeholder for client (no admin tab) -->
+
+<div class="bottom-nav">
+  <button class="nav-item active" data-tab="home" onclick="setTab('home')">
+    <span class="n-ico">🏠</span> الرئيسية
+  </button>
+  <button class="nav-item" data-tab="cats" onclick="setTab('cats')">
+    <span class="n-ico">▦</span> الأقسام
+  </button>
+  <button class="nav-item" data-tab="fav" onclick="setTab('fav')">
+    <span class="n-ico">♡</span> المفضلة
+    <span class="nav-badge" id="favBadge" style="display:none">0</span>
+  </button>
+</div>
+
+<!-- Product detail sheet -->
+<div class="overlay" id="detailOverlay" onclick="closeOnOverlay(event,'detailOverlay')">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div><!-- /appRoot -->
+
+<script>
+const CATEGORIES = [
+  {id:'fridges', name:'ثلاجات', icon:'🧊'},
+  {id:'washers', name:'غسالات', icon:'🧺'},
+  {id:'tvs', name:'شاشات', icon:'📺'},
+  {id:'ac', name:'مكيفات', icon:'❄️'},
+  {id:'ovens', name:'أفران', icon:'🔥'},
+  {id:'dryers', name:'مجففات', icon:'💨'},
+  {id:'small', name:'أجهزة صغيرة', icon:'🔌'},
+];
+
+const FAV_KEY = 'electrohub_favs_v1';
+const USER_KEY = 'electrohub_user_v1';
+
+let state = {
+  activeCat: 'all',
+  tab: 'home',
+};
+
+/* ---------- Firebase: shared live database (same data for admin + client) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyBK6IUt4FhXTwCbO2NwC0QvFl7CoIoEubI",
+  authDomain: "electrohub-8d172.firebaseapp.com",
+  projectId: "electrohub-8d172",
+  storageBucket: "electrohub-8d172.firebasestorage.app",
+  messagingSenderId: "480061248027",
+  appId: "1:480061248027:web:f249ab48b1a83fc02a9ebe",
+  measurementId: "G-JJTTX01EEC"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function loadFavs(){
+  const raw = localStorage.getItem(FAV_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+function saveFavs(f){ localStorage.setItem(FAV_KEY, JSON.stringify(f)); }
+
+let products = [];
+let settings = {whatsapp:'', phone:''};
+let favs = loadFavs();
+
+/* products list updates instantly for every visitor when the admin adds/edits/deletes */
+db.collection('products').onSnapshot(snapshot=>{
+  products = snapshot.docs.map(d=>({ id: d.id, ...d.data() }));
+  renderProducts();
+}, err=>{ console.error('products sync error', err); });
+
+/* store contact settings (whatsapp/phone) sync live too */
+db.collection('settings').doc('store').onSnapshot(doc=>{
+  if(doc.exists) settings = doc.data();
+});
+
+/* ---------- Anonymous visitor tracking (no login required) ---------- */
+function getVisitorId(){
+  let vid = localStorage.getItem(USER_KEY);
+  if(!vid){
+    vid = 'v_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+    localStorage.setItem(USER_KEY, vid);
+  }
+  return vid;
+}
+
+function recordVisit(visitorId){
+  db.collection('visits').add({
+    visitorId: visitorId,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(err=>console.error('visit log error', err));
+}
+
+function trackProductView(id){
+  db.collection('productViews').doc(id).set({
+    count: firebase.firestore.FieldValue.increment(1)
+  }, {merge:true}).catch(()=>{});
+}
+
+function catName(id){
+  const c = CATEGORIES.find(c=>c.id===id);
+  return c ? c.name : id;
+}
+function catIcon(id){
+  const c = CATEGORIES.find(c=>c.id===id);
+  return c ? c.icon : '📦';
+}
+function fmt(n){
+  return Number(n||0).toLocaleString('en-US');
+}
+
+function renderCats(){
+  const row = document.getElementById('catsRow');
+  const allChip = `
+    <button class="cat-chip ${state.activeCat==='all'?'active':''}" onclick="selectCat('all')">
+      <span class="ico">✦</span>
+      <span class="cat-name">الكل</span>
+    </button>`;
+  const chips = CATEGORIES.map(c=>`
+    <button class="cat-chip ${state.activeCat===c.id?'active':''}" onclick="selectCat('${c.id}')">
+      <span class="ico">${c.icon}</span>
+      <span class="cat-name">${c.name}</span>
+    </button>`).join('');
+  row.innerHTML = allChip + chips;
+}
+
+function selectCat(id){
+  state.activeCat = id;
+  state.tab = 'home';
+  setTabUI('home');
+  renderCats();
+  renderProducts();
+}
+
+function currentFiltered(){
+  const q = (document.getElementById('searchInput').value || '').trim();
+  let list = products;
+  if(state.tab === 'fav'){
+    list = list.filter(p=>favs.includes(p.id));
+  }
+  if(state.activeCat !== 'all'){
+    list = list.filter(p=>p.cat === state.activeCat);
+  }
+  if(q){
+    list = list.filter(p=> p.name.includes(q) || catName(p.cat).includes(q));
+  }
+  return list;
+}
+
+function getProductImages(p){
+  if(p.imgs && p.imgs.length) return p.imgs;
+  if(p.img) return [p.img];
+  return [];
+}
+
+function renderProducts(){
+  const grid = document.getElementById('productGrid');
+  const title = document.getElementById('gridTitle');
+  const count = document.getElementById('resultCount');
+  const list = currentFiltered();
+
+  title.textContent = state.tab === 'fav' ? 'المفضلة'
+    : (state.activeCat === 'all' ? 'جميع المنتجات' : catName(state.activeCat));
+  count.textContent = list.length ? (list.length + ' منتج') : '';
+
+  if(list.length === 0){
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="ico">📦</div>
+        ${state.tab==='fav' ? 'لا توجد منتجات في المفضلة بعد' : 'لا توجد منتجات هنا بعد'}
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(p=>{
+    const isFav = favs.includes(p.id);
+    const imgs = getProductImages(p);
+    const imgHtml = imgs.length
+      ? `<img src="${imgs[0]}" alt="${p.name}">`
+      : `<div style="font-size:38px">${catIcon(p.cat)}</div>`;
+    return `
+    <div class="p-card">
+      ${p.discount ? `<div class="p-badge">-${p.discount}%</div>` : ''}
+      <button class="p-fav ${isFav?'active':''}" onclick="toggleFav('${p.id}')">${isFav?'♥':'♡'}</button>
+      <div class="p-img" onclick="openDetail('${p.id}')">${imgHtml}</div>
+      <div class="p-cat">${catName(p.cat)}</div>
+      <div class="p-name" onclick="openDetail('${p.id}')">${p.name}</div>
+      <div class="p-price-row">
+        <span class="price">${fmt(p.price)} د.ع</span>
+        ${p.oldPrice ? `<span class="price-old">${fmt(p.oldPrice)} د.ع</span>` : ''}
+      </div>
+      <div class="p-actions">
+        <button class="btn-wa" onclick="contactWhatsapp('${p.id}')">💬 واتساب</button>
+        <button class="btn-call" onclick="contactCall()">📞</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleFav(id){
+  if(favs.includes(id)) favs = favs.filter(f=>f!==id);
+  else favs.push(id);
+  saveFavs(favs);
+  updateFavBadge();
+  renderProducts();
+}
+function updateFavBadge(){
+  const b = document.getElementById('favBadge');
+  if(favs.length>0){ b.style.display='flex'; b.textContent = favs.length; }
+  else b.style.display='none';
+}
+
+function openDetail(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  trackProductView(id);
+  const sheet = document.getElementById('detailSheet');
+  const imgs = getProductImages(p);
+  window.currentDetailImages = imgs;
+  const mainImgHtml = imgs.length
+    ? `<img id="pdMainImg" src="${imgs[0]}">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:60px;">${catIcon(p.cat)}</div>`;
+  const thumbsHtml = imgs.length > 1 ? `
+    <div class="pd-thumbs" id="pdThumbs">
+      ${imgs.map((src,i)=>`<img src="${src}" class="${i===0?'active':''}" onclick="setDetailImage(${i})">`).join('')}
+    </div>` : '';
+  sheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="pd-img">${mainImgHtml}</div>
+    ${thumbsHtml}
+    <div class="pd-cat">${catName(p.cat)}</div>
+    <div class="pd-name">${p.name}</div>
+    <div class="pd-price-row">
+      <span class="pd-price">${fmt(p.price)} د.ع</span>
+      ${p.oldPrice ? `<span class="pd-old">${fmt(p.oldPrice)} د.ع</span>` : ''}
+      ${p.discount ? `<span class="p-badge" style="position:static;">-${p.discount}%</span>` : ''}
+    </div>
+    <div class="pd-desc">${p.desc || 'لا يوجد وصف لهذا المنتج بعد.'}</div>
+    <div class="sheet-actions">
+      <button class="btn btn-primary" style="background:#25D366; width:100%" onclick="contactWhatsapp('${p.id}')">💬 تواصل عبر واتساب</button>
+    </div>
+  `;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function setDetailImage(i){
+  const imgs = window.currentDetailImages || [];
+  const mainEl = document.getElementById('pdMainImg');
+  if(mainEl && imgs[i]) mainEl.src = imgs[i];
+  document.querySelectorAll('#pdThumbs img').forEach((el,idx)=> el.classList.toggle('active', idx===i));
+}
+
+function contactWhatsapp(id){
+  const p = products.find(x=>x.id===id);
+  const number = (p && p.whatsapp) ? p.whatsapp : settings.whatsapp;
+  if(!number){ showToast('الرجاء إضافة رقم واتساب من إدارة المتجر'); return; }
+  const text = encodeURIComponent(`مرحباً، أنا مهتم بمنتج: ${p ? p.name : ''}`);
+  window.open(`https://wa.me/${number}?text=${text}`, '_blank');
+}
+function contactCall(){
+  if(!settings.phone){ showToast('الرجاء إضافة رقم الهاتف من إدارة المتجر'); return; }
+  window.location.href = `tel:${settings.phone}`;
+}
+
+/* ---- Tabs / overlays ---- */
+function setTab(tab){
+  state.tab = tab;
+  setTabUI(tab);
+  if(tab === 'cats'){
+    document.getElementById('gridTitle').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  renderProducts();
+}
+function setTabUI(tab){
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.classList.toggle('active', n.dataset.tab===tab);
+  });
+}
+function closeSheet(id){ document.getElementById(id).classList.remove('open'); }
+function closeOnOverlay(e,id){ if(e.target.id===id) closeSheet(id); }
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* init */
+recordVisit(getVisitorId());
+renderCats();
+renderProducts();
+updateFavBadge();
+</script>
+</body>
+</html>
