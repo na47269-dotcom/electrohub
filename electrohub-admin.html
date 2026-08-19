@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ElectroHub | لوحة التحكم</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --teal-950:#052421;
+    --teal-900:#0a3733;
+    --teal-700:#0d6b62;
+    --teal-600:#0f8a7c;
+    --teal-500:#14a596;
+    --navy:#0b1a2b;
+    --ivory:#f6f4ef;
+    --ivory-2:#efece3;
+    --ink:#12201c;
+    --muted:#5b6a66;
+    --red:#e0473f;
+    --gold:#c9974a;
+    --line: rgba(11,26,43,0.08);
+    --radius: 18px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-behavior:smooth; }
+  body{
+    font-family:'Tajawal', sans-serif;
+    background: var(--ivory);
+    color: var(--ink);
+    padding-bottom: 84px;
+  }
+  h1,h2,h3,.brand,.cat-name,.price,.section-title{ font-family:'Cairo', sans-serif; }
+  img{ max-width:100%; display:block; }
+  button{ font-family:inherit; cursor:pointer; border:none; }
+  ::selection{ background: var(--teal-500); color:#fff; }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background: linear-gradient(180deg, var(--teal-950), var(--teal-900));
+    color:#fff;
+    padding: 14px 18px 20px;
+    border-radius: 0 0 22px 22px;
+    box-shadow: 0 12px 30px -18px rgba(5,36,33,0.6);
+  }
+  .topbar-row{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px;
+    font-weight:800; font-size:20px; letter-spacing:0.3px;
+  }
+  .brand .dot{
+    width:10px; height:10px; border-radius:50%;
+    background: var(--gold);
+    box-shadow:0 0 10px var(--gold);
+  }
+  .icon-btn{
+    width:38px; height:38px; border-radius:50%;
+    background: rgba(255,255,255,0.08);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; position:relative;
+  }
+  .search-wrap{
+    background:#fff; border-radius:14px; padding:12px 16px;
+    display:flex; align-items:center; gap:10px; color:var(--muted);
+  }
+  .search-wrap input{
+    border:none; outline:none; flex:1; font-family:'Tajawal'; font-size:14px; background:transparent;
+  }
+
+  .hero{
+    margin:16px 18px 0;
+    border-radius: var(--radius);
+    background: linear-gradient(120deg, var(--teal-700), var(--teal-600) 60%, #0f6f63);
+    color:#fff;
+    padding: 22px 20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image: radial-gradient(circle at 85% 20%, rgba(255,255,255,0.14), transparent 40%),
+                       radial-gradient(circle at 100% 90%, rgba(201,151,74,0.25), transparent 45%);
+  }
+  .hero-content{ position:relative; z-index:1; max-width:64%; }
+  .hero h2{ font-size:19px; font-weight:800; margin-bottom:6px; }
+  .hero p{ font-size:13px; opacity:0.9; margin-bottom:12px; line-height:1.5; }
+  .hero button{
+    background:#fff; color:var(--teal-900); font-weight:700; font-size:13px;
+    padding:9px 18px; border-radius:10px;
+  }
+
+  /* ---------- Sections ---------- */
+  .section{ padding: 22px 18px 4px; }
+  .section-head{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .section-title{ font-size:16px; font-weight:800; }
+  .section-link{ font-size:12px; color: var(--teal-600); font-weight:700; }
+
+  /* categories */
+  .cats{
+    display:flex; gap:12px; overflow-x:auto; padding-bottom:6px;
+    scrollbar-width:none;
+  }
+  .cats::-webkit-scrollbar{ display:none; }
+  .cat-chip{
+    flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding:4px;
+    min-width:64px;
+  }
+  .cat-chip .ico{
+    width:56px; height:56px; border-radius:16px;
+    background:#fff; border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  .cat-chip.active .ico, .cat-chip:hover .ico{
+    background: var(--teal-600); color:#fff; transform: translateY(-2px);
+    box-shadow: 0 10px 18px -10px rgba(15,138,124,0.6);
+  }
+  .cat-name{ font-size:11.5px; font-weight:700; color:var(--ink); white-space:nowrap; }
+
+  /* products grid */
+  .grid{
+    display:grid; grid-template-columns: repeat(2, 1fr); gap:14px;
+  }
+  .p-card{
+    background:#fff; border-radius:16px; padding:12px; position:relative;
+    border:1px solid var(--line);
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .p-card:hover{ transform: translateY(-3px); box-shadow: 0 16px 30px -20px rgba(5,36,33,0.35); }
+  .p-badge{
+    position:absolute; top:10px; right:10px; z-index:2;
+    background: var(--red); color:#fff; font-size:11px; font-weight:700;
+    padding:3px 8px; border-radius:8px;
+  }
+  .p-fav{
+    position:absolute; top:10px; left:10px; z-index:2;
+    width:28px; height:28px; border-radius:50%; background:#fff;
+    display:flex; align-items:center; justify-content:center; color:var(--muted);
+    box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  }
+  .p-fav.active{ color: var(--red); }
+  .p-img{
+    width:100%; height:120px; border-radius:12px; overflow:hidden;
+    background: var(--ivory-2); display:flex; align-items:center; justify-content:center;
+    margin-bottom:10px;
+  }
+  .p-img img{ width:100%; height:100%; object-fit:cover; }
+  .p-cat{ font-size:11px; color:var(--teal-600); font-weight:700; margin-bottom:2px; }
+  .p-name{ font-size:13.5px; font-weight:700; line-height:1.4; margin-bottom:6px; min-height:36px; }
+  .p-price-row{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .price{ font-size:15px; font-weight:800; color: var(--teal-900); }
+  .price-old{ font-size:11.5px; color:var(--muted); text-decoration:line-through; }
+  .p-actions{ display:flex; gap:6px; margin-top:10px; }
+  .p-actions button{
+    flex:1; border-radius:10px; padding:8px 6px; font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; gap:5px;
+  }
+  .btn-wa{ background:#25D366; color:#fff; }
+  .btn-call{ background: var(--ivory-2); color: var(--teal-900); }
+  .btn-del{ background:#fdecea; color:var(--red); flex:0 0 auto; width:34px; }
+
+  .empty-state{
+    text-align:center; padding: 40px 20px; color:var(--muted);
+  }
+  .empty-state .ico{ font-size:34px; margin-bottom:10px; }
+
+  /* ---------- FAB ---------- */
+  .fab{
+    position:fixed; left:18px; bottom:86px; z-index:45;
+    width:54px; height:54px; border-radius:50%;
+    background: linear-gradient(135deg, var(--teal-600), var(--teal-700));
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:26px; box-shadow: 0 14px 26px -10px rgba(15,138,124,0.6);
+  }
+
+  /* ---------- Bottom nav ---------- */
+  .bottom-nav{
+    position:fixed; bottom:0; left:0; right:0; z-index:40;
+    background:#fff; border-top:1px solid var(--line);
+    display:flex; justify-content:space-around; padding:8px 6px 10px;
+  }
+  .nav-item{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--muted); font-size:10.5px; font-weight:700; background:none;
+    padding:4px 8px; position:relative;
+  }
+  .nav-item.active{ color: var(--teal-700); }
+  .nav-item .n-ico{ font-size:19px; }
+  .nav-badge{
+    position:absolute; top:-2px; left:2px;
+    background:var(--red); color:#fff; font-size:9px; font-weight:800;
+    width:15px; height:15px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  }
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(5,20,18,0.55); backdrop-filter: blur(2px);
+    z-index:60; display:none; align-items:flex-end; justify-content:center;
+  }
+  .overlay.open{ display:flex; }
+  .sheet{
+    background:#fff; width:100%; max-width:480px; border-radius:22px 22px 0 0;
+    max-height:88vh; overflow-y:auto; padding:20px 20px 26px;
+    animation: slideUp .28s ease;
+  }
+  @keyframes slideUp{ from{ transform:translateY(30px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+  .sheet-handle{ width:40px; height:4px; background:var(--line); border-radius:4px; margin:0 auto 16px; }
+  .sheet h3{ font-size:17px; margin-bottom:14px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12.5px; font-weight:700; margin-bottom:6px; color:var(--ink); }
+  .field input, .field select, .field textarea{
+    width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    font-family:'Tajawal'; font-size:13.5px; outline:none; background: var(--ivory);
+  }
+  .field textarea{ resize:vertical; min-height:64px; }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  .upload-box{
+    border:1.5px dashed var(--line); border-radius:12px; padding:16px;
+    text-align:center; color:var(--muted); font-size:12.5px; position:relative; overflow:hidden;
+    background: var(--ivory);
+  }
+  .upload-box img{ max-height:110px; margin:0 auto 8px; border-radius:8px; }
+  .upload-box input[type=file]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+  .img-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  .img-grid .img-thumb{ position:relative; width:64px; height:64px; border-radius:10px; overflow:hidden; border:1px solid var(--line); }
+  .img-grid .img-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .img-grid .img-thumb .remove-btn{
+    position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+    background:rgba(0,0,0,0.6); color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center;
+    line-height:1;
+  }
+  .sheet-actions{ display:flex; gap:10px; margin-top:16px; }
+  .btn{
+    flex:1; padding:12px; border-radius:12px; font-weight:700; font-size:14px;
+  }
+  .btn-primary{ background: var(--teal-700); color:#fff; }
+  .btn-ghost{ background: var(--ivory-2); color:var(--ink); }
+
+  /* product detail sheet */
+  .pd-img{ width:100%; height:220px; border-radius:16px; overflow:hidden; background:var(--ivory-2); margin-bottom:10px; }
+  .pd-img img{ width:100%; height:100%; object-fit:cover; }
+  .pd-thumbs{ display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; scrollbar-width:none; }
+  .pd-thumbs::-webkit-scrollbar{ display:none; }
+  .pd-thumbs img{ width:56px; height:56px; border-radius:10px; object-fit:cover; border:2px solid transparent; cursor:pointer; flex:0 0 auto; }
+  .pd-thumbs img.active{ border-color:var(--teal-600); }
+  .pd-cat{ font-size:12px; color:var(--teal-600); font-weight:700; }
+  .pd-name{ font-size:19px; font-weight:800; margin:4px 0 8px; }
+  .pd-price-row{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .pd-price{ font-size:21px; font-weight:800; color:var(--teal-900); }
+  .pd-old{ font-size:13px; color:var(--muted); text-decoration:line-through; }
+  .pd-desc{ font-size:13.5px; color:var(--muted); line-height:1.7; margin-bottom:16px; }
+
+  .toast{
+    position:fixed; bottom:96px; left:50%; transform:translateX(-50%);
+    background: var(--navy); color:#fff; padding:10px 18px; border-radius:12px;
+    font-size:13px; font-weight:600; z-index:80; opacity:0; pointer-events:none;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+
+  @media (min-width:560px){
+    .grid{ grid-template-columns: repeat(3,1fr); }
+  }
+
+  /* ---------- Login screen ---------- */
+  .login-screen{
+    position:fixed; inset:0; z-index:100;
+    background: radial-gradient(ellipse at 50% 0%, var(--teal-700), var(--teal-950) 65%);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    width:100%; max-width:380px; background:#fff; border-radius:22px;
+    padding:32px 26px; text-align:center;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5);
+  }
+  .login-card .dot-logo{
+    width:52px; height:52px; border-radius:16px; margin:0 auto 14px;
+    background: linear-gradient(135deg, var(--teal-600), var(--teal-900));
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:24px;
+  }
+  .login-card h2{ font-size:19px; margin-bottom:6px; }
+  .login-card p{ font-size:13px; color:var(--muted); margin-bottom:22px; line-height:1.6; }
+  .login-card .field{ text-align:right; }
+  .login-error{ color:var(--red); font-size:12px; margin-top:6px; display:none; }
+  .login-note{ font-size:11px; color:var(--muted); margin-top:16px; line-height:1.6; }
+
+  /* ---------- User pill in topbar ---------- */
+  .user-pill{
+    display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,0.1); color:#fff; font-size:11px; font-weight:700;
+    padding:6px 10px; border-radius:20px;
+    max-width:190px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  .user-pill .lo{ opacity:0.7; font-size:10px; }
+
+  /* ---------- Analytics ---------- */
+  .stat-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+  .stat-card{
+    background: var(--ivory); border:1px solid var(--line); border-radius:14px; padding:14px;
+  }
+  .stat-card .num{ font-size:22px; font-weight:800; color:var(--teal-900); font-family:'Cairo'; }
+  .stat-card .lbl{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .bar-row{ margin-bottom:10px; }
+  .bar-row .bar-top{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; }
+  .bar-track{ background:var(--ivory-2); border-radius:8px; height:8px; overflow:hidden; }
+  .bar-fill{ background: linear-gradient(90deg, var(--teal-500), var(--teal-700)); height:100%; border-radius:8px; }
+  .analytics-sec-title{ font-size:13px; font-weight:700; margin: 18px 0 10px; color:var(--ink); }
+  .visitor-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 0; border-bottom:1px solid var(--line); font-size:12.5px;
+  }
+  .visitor-row:last-child{ border-bottom:none; }
+  .visitor-row .vt{ color:var(--muted); font-size:11px; }
+</style>
+</head>
+<body>
+
+<!-- Admin login gate (email + password, only you can sign in) -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="dot-logo">🔒</div>
+    <h2>دخول لوحة تحكم ElectroHub</h2>
+    <p>هذي الصفحة خاصة بالإدارة فقط. سجّل دخول بالبريد وكلمة المرور اللي أنشأتها بحساب Firebase.</p>
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="field">
+        <label>البريد الإلكتروني</label>
+        <input id="loginEmail" type="email" placeholder="you@example.com" required>
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input id="loginPassword" type="password" placeholder="••••••••" required>
+      </div>
+      <div class="login-error" id="loginError">البريد أو كلمة المرور غير صحيحة</div>
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;">دخول</button>
+    </form>
+    <div class="login-note">إذا ما عندك حساب بعد، أنشئه من Firebase Console → Authentication → Users.</div>
+  </div>
+</div>
+
+<div id="appRoot" style="display:none;">
+
+<div class="topbar">
+  <div class="topbar-row">
+    <div class="brand"><span class="dot"></span> ElectroHub <span style="font-size:11px; background:var(--gold); color:var(--teal-950); padding:2px 8px; border-radius:8px; margin-right:4px;">إدارة</span></div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="user-pill" id="userPill" onclick="handleLogout()">
+        <span id="userPillText">-</span>
+        <span class="lo">⏻</span>
+      </div>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span>🔍</span>
+    <input id="searchInput" placeholder="ابحث عن منتج أو موديل" oninput="renderProducts()">
+  </div>
+  <div class="hero">
+    <div class="hero-content">
+      <h2>تشكيلة الأجهزة الجديدة</h2>
+      <p>أضف منتجاتك الخاصة وعرضها لعملائك بسهولة</p>
+      <button onclick="openAddProduct()">أضف منتجك الأول</button>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">الأقسام</div>
+  </div>
+  <div class="cats" id="catsRow"></div>
+</div>
+
+<div class="section">
+  <div class="section-head">
+    <div class="section-title" id="gridTitle">جميع المنتجات</div>
+    <div class="section-link" id="resultCount"></div>
+  </div>
+  <div class="grid" id="productGrid"></div>
+</div>
+
+<button class="fab" onclick="openAddProduct()" title="إضافة منتج">＋</button>
+
+<div class="bottom-nav">
+  <button class="nav-item active" data-tab="home" onclick="setTab('home')">
+    <span class="n-ico">🏠</span> الرئيسية
+  </button>
+  <button class="nav-item" data-tab="cats" onclick="setTab('cats')">
+    <span class="n-ico">▦</span> الأقسام
+  </button>
+  <button class="nav-item" data-tab="fav" onclick="setTab('fav')">
+    <span class="n-ico">♡</span> المفضلة
+    <span class="nav-badge" id="favBadge" style="display:none">0</span>
+  </button>
+  <button class="nav-item" data-tab="admin" onclick="setTab('admin')">
+    <span class="n-ico">⚙</span> إدارة المتجر
+  </button>
+</div>
+
+<!-- Product detail sheet -->
+<div class="overlay" id="detailOverlay" onclick="closeOnOverlay(event,'detailOverlay')">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<!-- Add/Edit product sheet -->
+<div class="overlay" id="formOverlay" onclick="closeOnOverlay(event,'formOverlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 id="formTitle">إضافة منتج جديد</h3>
+    <form id="productForm" onsubmit="saveProduct(event)">
+      <input type="hidden" id="editId">
+      <div class="field">
+        <label>صور المنتج (تقدر تضيف أكثر من صورة)</label>
+        <div class="img-grid" id="imgGrid"></div>
+        <div class="upload-box" id="uploadBox">
+          <span id="uploadHint">اضغط لإضافة صورة — يفضّل صور صغيرة الحجم (أقل من 400 كيلوبايت للواحدة)</span>
+          <input type="file" accept="image/*" id="imgInput" multiple onchange="handleImage(event)">
+        </div>
+      </div>
+      <div class="field">
+        <label>اسم المنتج</label>
+        <input id="pName" placeholder="مثال: ثلاجة 4 أبواب Hisense 560L" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>القسم</label>
+          <select id="pCat"></select>
+        </div>
+        <div class="field">
+          <label>نسبة الخصم % (اختياري)</label>
+          <input id="pDiscount" type="number" min="0" max="90" placeholder="مثال: 15">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>السعر الحالي (د.ع)</label>
+          <input id="pPrice" type="number" min="0" required placeholder="1250000">
+        </div>
+        <div class="field">
+          <label>السعر قبل الخصم (اختياري)</label>
+          <input id="pOldPrice" type="number" min="0" placeholder="1470000">
+        </div>
+      </div>
+      <div class="field">
+        <label>الوصف / المواصفات</label>
+        <textarea id="pDesc" placeholder="تفاصيل مختصرة عن المنتج، اللون، الضمان..."></textarea>
+      </div>
+      <div class="field">
+        <label>رقم واتساب للتواصل (مع رمز الدولة)</label>
+        <input id="pWhatsapp" placeholder="9647xxxxxxxxx">
+      </div>
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeSheet('formOverlay')">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ المنتج</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Admin sheet -->
+<div class="overlay" id="adminOverlay" onclick="closeOnOverlay(event,'adminOverlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>إدارة المتجر</h3>
+    <div class="field">
+      <label>رقم واتساب المتجر الافتراضي</label>
+      <input id="storeWhatsapp" placeholder="9647xxxxxxxxx">
+    </div>
+    <div class="field">
+      <label>رقم الهاتف للاتصال</label>
+      <input id="storePhone" placeholder="+9647xxxxxxxxx">
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" onclick="closeSheet('adminOverlay')">إغلاق</button>
+      <button type="button" class="btn btn-primary" onclick="saveStoreSettings()">حفظ الإعدادات</button>
+    </div>
+    <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:14px; display:flex; flex-direction:column; gap:8px;">
+      <button type="button" class="btn btn-ghost" style="width:100%" onclick="openAddProduct()">+ إضافة منتج جديد</button>
+      <button type="button" class="btn btn-primary" style="width:100%" onclick="openAnalytics()">📊 عرض التحليلات الكاملة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Analytics sheet -->
+<div class="overlay" id="analyticsOverlay" onclick="closeOnOverlay(event,'analyticsOverlay')">
+  <div class="sheet" id="analyticsSheet" style="max-height:90vh;"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div><!-- /appRoot -->
+
+<script>
+const CATEGORIES = [
+  {id:'fridges', name:'ثلاجات', icon:'🧊'},
+  {id:'washers', name:'غسالات', icon:'🧺'},
+  {id:'tvs', name:'شاشات', icon:'📺'},
+  {id:'ac', name:'مكيفات', icon:'❄️'},
+  {id:'ovens', name:'أفران', icon:'🔥'},
+  {id:'dryers', name:'مجففات', icon:'💨'},
+  {id:'small', name:'أجهزة صغيرة', icon:'🔌'},
+];
+
+const FAV_KEY = 'electrohub_favs_v1';
+const USER_KEY = 'electrohub_user_v1';
+
+let state = {
+  activeCat: 'all',
+  tab: 'home',
+};
+
+/* ---------- Firebase: shared live database (same data for admin + client) ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyBK6IUt4FhXTwCbO2NwC0QvFl7CoIoEubI",
+  authDomain: "electrohub-8d172.firebaseapp.com",
+  projectId: "electrohub-8d172",
+  storageBucket: "electrohub-8d172.firebasestorage.app",
+  messagingSenderId: "480061248027",
+  appId: "1:480061248027:web:f249ab48b1a83fc02a9ebe",
+  measurementId: "G-JJTTX01EEC"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function loadFavs(){
+  const raw = localStorage.getItem(FAV_KEY);
+  return raw ? JSON.parse(raw) : [];
+}
+function saveFavs(f){ localStorage.setItem(FAV_KEY, JSON.stringify(f)); }
+
+let products = [];
+let settings = {whatsapp:'', phone:''};
+let favs = loadFavs();
+let seededChecked = false;
+
+function seedInitialProducts(){
+  const seeds = [
+    { name:'ثلاجة 4 أبواب Hisense 560L', cat:'fridges', price:2250000, oldPrice:2650000, discount:15, desc:'تقنية No Frost، كفاءة طاقة A++، سعة 560 لتر، ضمان 10 سنوات على الكومبريسور، لون أسود ستيل.', img:'', whatsapp:'' },
+    { name:'غسالة تعبئة أمامية Hisense 9KG', cat:'washers', price:1250000, oldPrice:1470000, discount:15, desc:'غسالة أوتوماتيك تعبئة أمامية، محرك انفرتر هادئ، برامج غسيل متعددة.', img:'', whatsapp:'' },
+    { name:'شاشة 55 بوصة Hisense 4K', cat:'tvs', price:880000, oldPrice:1100000, discount:20, desc:'دقة 4K UHD، نظام تشغيل ذكي، منافذ HDMI متعددة.', img:'', whatsapp:'' },
+    { name:'ثلاجة بابين Hitachi 450L', cat:'fridges', price:1650000, oldPrice:1850000, discount:10, desc:'سعة كبيرة 450 لتر، تبريد متعدد الاتجاهات، توفير في استهلاك الطاقة.', img:'', whatsapp:'' },
+  ];
+  const batch = db.batch();
+  seeds.forEach(s=>{ batch.set(db.collection('products').doc(), s); });
+  batch.commit().catch(err=>console.error('seed error', err));
+}
+
+/* products list updates instantly for every visitor when the admin adds/edits/deletes */
+db.collection('products').onSnapshot(snapshot=>{
+  products = snapshot.docs.map(d=>({ id: d.id, ...d.data() }));
+  renderProducts();
+  if(!seededChecked){
+    seededChecked = true;
+    if(snapshot.empty) seedInitialProducts();
+  }
+}, err=>{ console.error('products sync error', err); });
+
+/* store contact settings (whatsapp/phone) sync live too */
+db.collection('settings').doc('store').onSnapshot(doc=>{
+  if(doc.exists) settings = doc.data();
+});
+
+/* ---------- Admin authentication (email + password, only you) ---------- */
+const auth = firebase.auth();
+
+function handleLogin(e){
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  document.getElementById('loginError').style.display = 'none';
+  auth.signInWithEmailAndPassword(email, password)
+    .catch(err=>{
+      console.error(err);
+      document.getElementById('loginError').style.display = 'block';
+    });
+}
+
+function handleLogout(){
+  if(!confirm('تسجيل الخروج من لوحة التحكم؟')) return;
+  auth.signOut();
+}
+
+function enterApp(user){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  document.getElementById('userPillText').textContent = user.email;
+  renderCats();
+  renderProducts();
+  updateFavBadge();
+}
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    enterApp(user);
+  } else {
+    document.getElementById('appRoot').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+});
+
+function trackProductView(id){
+  db.collection('productViews').doc(id).set({
+    count: firebase.firestore.FieldValue.increment(1)
+  }, {merge:true}).catch(()=>{});
+}
+
+async function openAnalytics(){
+  closeSheet('adminOverlay');
+  const sheet = document.getElementById('analyticsSheet');
+  sheet.innerHTML = `<div class="sheet-handle"></div><h3>📊 التحليلات الكاملة</h3><div style="padding:30px 0; text-align:center; color:var(--muted); font-size:13px;">جاري تحميل البيانات...</div>`;
+  document.getElementById('analyticsOverlay').classList.add('open');
+
+  let visits = [];
+  try{
+    const snap = await db.collection('visits').orderBy('ts','desc').limit(300).get();
+    visits = snap.docs.map(d=>{
+      const v = d.data();
+      return { visitorId: v.visitorId, ts: v.ts && v.ts.toDate ? v.ts.toDate() : new Date() };
+    });
+  } catch(err){ console.error('analytics visits fetch error', err); }
+
+  let viewCounts = {};
+  try{
+    const viewsSnap = await db.collection('productViews').get();
+    viewsSnap.docs.forEach(d=>{ viewCounts[d.id] = d.data().count || 0; });
+  } catch(err){ console.error('analytics views fetch error', err); }
+
+  const totalVisits = visits.length;
+  const uniqueVisitors = [...new Set(visits.map(v=>v.visitorId))];
+  const totalFavs = favs.length;
+  const totalProducts = products.length;
+
+  const catCounts = CATEGORIES.map(c=>({
+    name:c.name,
+    count: products.filter(p=>p.cat===c.id).length
+  })).sort((a,b)=>b.count-a.count);
+  const maxCat = Math.max(1, ...catCounts.map(c=>c.count));
+
+  const topViewed = products
+    .map(p=>({ p, count: viewCounts[p.id] || 0 }))
+    .filter(x=>x.count>0)
+    .sort((a,b)=>b.count-a.count)
+    .slice(0,5);
+  const maxView = Math.max(1, ...topViewed.map(v=>v.count));
+
+  const recentVisitors = visits.slice(0,8);
+
+  sheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <h3>📊 التحليلات الكاملة</h3>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">${totalVisits}</div><div class="lbl">إجمالي الزيارات</div></div>
+      <div class="stat-card"><div class="num">${uniqueVisitors.length}</div><div class="lbl">زوار مسجلين (فريدين)</div></div>
+      <div class="stat-card"><div class="num">${totalProducts}</div><div class="lbl">عدد المنتجات</div></div>
+      <div class="stat-card"><div class="num">${totalFavs}</div><div class="lbl">منتجات بالمفضلة</div></div>
+    </div>
+
+    <div class="analytics-sec-title">المنتجات الأكثر مشاهدة</div>
+    ${topViewed.length ? topViewed.map(v=>`
+      <div class="bar-row">
+        <div class="bar-top"><span>${v.p.name}</span><span>${v.count}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(v.count/maxView*100)}%"></div></div>
+      </div>
+    `).join('') : `<div style="font-size:12.5px; color:var(--muted);">لا توجد مشاهدات مسجلة بعد</div>`}
+
+    <div class="analytics-sec-title">توزيع المنتجات حسب القسم</div>
+    ${catCounts.map(c=>`
+      <div class="bar-row">
+        <div class="bar-top"><span>${c.name}</span><span>${c.count}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(c.count/maxCat*100)}%"></div></div>
+      </div>
+    `).join('')}
+
+    <div class="analytics-sec-title">آخر الزوار</div>
+    ${recentVisitors.length ? recentVisitors.map(v=>`
+      <div class="visitor-row">
+        <span>زائر ${v.visitorId ? v.visitorId.slice(-6) : '—'}</span>
+        <span class="vt">${v.ts.toLocaleString('ar-EG')}</span>
+      </div>
+    `).join('') : `<div style="font-size:12.5px; color:var(--muted);">لا توجد زيارات مسجلة بعد</div>`}
+
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" style="width:100%" onclick="closeSheet('analyticsOverlay')">إغلاق</button>
+    </div>
+  `;
+  document.getElementById('analyticsOverlay').classList.add('open');
+}
+
+function catName(id){
+  const c = CATEGORIES.find(c=>c.id===id);
+  return c ? c.name : id;
+}
+function catIcon(id){
+  const c = CATEGORIES.find(c=>c.id===id);
+  return c ? c.icon : '📦';
+}
+function fmt(n){
+  return Number(n||0).toLocaleString('en-US');
+}
+
+function renderCats(){
+  const row = document.getElementById('catsRow');
+  const allChip = `
+    <button class="cat-chip ${state.activeCat==='all'?'active':''}" onclick="selectCat('all')">
+      <span class="ico">✦</span>
+      <span class="cat-name">الكل</span>
+    </button>`;
+  const chips = CATEGORIES.map(c=>`
+    <button class="cat-chip ${state.activeCat===c.id?'active':''}" onclick="selectCat('${c.id}')">
+      <span class="ico">${c.icon}</span>
+      <span class="cat-name">${c.name}</span>
+    </button>`).join('');
+  row.innerHTML = allChip + chips;
+}
+
+function selectCat(id){
+  state.activeCat = id;
+  state.tab = 'home';
+  setTabUI('home');
+  renderCats();
+  renderProducts();
+}
+
+function currentFiltered(){
+  const q = (document.getElementById('searchInput').value || '').trim();
+  let list = products;
+  if(state.tab === 'fav'){
+    list = list.filter(p=>favs.includes(p.id));
+  }
+  if(state.activeCat !== 'all'){
+    list = list.filter(p=>p.cat === state.activeCat);
+  }
+  if(q){
+    list = list.filter(p=> p.name.includes(q) || catName(p.cat).includes(q));
+  }
+  return list;
+}
+
+function getProductImages(p){
+  if(p.imgs && p.imgs.length) return p.imgs;
+  if(p.img) return [p.img];
+  return [];
+}
+
+function renderProducts(){
+  const grid = document.getElementById('productGrid');
+  const title = document.getElementById('gridTitle');
+  const count = document.getElementById('resultCount');
+  const list = currentFiltered();
+
+  title.textContent = state.tab === 'fav' ? 'المفضلة'
+    : (state.activeCat === 'all' ? 'جميع المنتجات' : catName(state.activeCat));
+  count.textContent = list.length ? (list.length + ' منتج') : '';
+
+  if(list.length === 0){
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="ico">📦</div>
+        ${state.tab==='fav' ? 'لا توجد منتجات في المفضلة بعد' : 'لا توجد منتجات هنا بعد'}<br>
+        <button class="btn btn-primary" style="margin-top:14px; display:inline-block; padding:9px 20px;" onclick="openAddProduct()">+ إضافة منتج</button>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(p=>{
+    const isFav = favs.includes(p.id);
+    const imgs = getProductImages(p);
+    const imgHtml = imgs.length
+      ? `<img src="${imgs[0]}" alt="${p.name}">`
+      : `<div style="font-size:38px">${catIcon(p.cat)}</div>`;
+    return `
+    <div class="p-card">
+      ${p.discount ? `<div class="p-badge">-${p.discount}%</div>` : ''}
+      <button class="p-fav ${isFav?'active':''}" onclick="toggleFav('${p.id}')">${isFav?'♥':'♡'}</button>
+      <div class="p-img" onclick="openDetail('${p.id}')">${imgHtml}</div>
+      <div class="p-cat">${catName(p.cat)}</div>
+      <div class="p-name" onclick="openDetail('${p.id}')">${p.name}</div>
+      <div class="p-price-row">
+        <span class="price">${fmt(p.price)} د.ع</span>
+        ${p.oldPrice ? `<span class="price-old">${fmt(p.oldPrice)} د.ع</span>` : ''}
+      </div>
+      <div class="p-actions">
+        <button class="btn-wa" onclick="contactWhatsapp('${p.id}')">💬 واتساب</button>
+        <button class="btn-call" onclick="contactCall()">📞</button>
+        <button class="btn-del" onclick="deleteProduct('${p.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleFav(id){
+  if(favs.includes(id)) favs = favs.filter(f=>f!==id);
+  else favs.push(id);
+  saveFavs(favs);
+  updateFavBadge();
+  renderProducts();
+}
+function updateFavBadge(){
+  const b = document.getElementById('favBadge');
+  if(favs.length>0){ b.style.display='flex'; b.textContent = favs.length; }
+  else b.style.display='none';
+}
+
+function openDetail(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  trackProductView(id);
+  const sheet = document.getElementById('detailSheet');
+  const imgs = getProductImages(p);
+  window.currentDetailImages = imgs;
+  const mainImgHtml = imgs.length
+    ? `<img id="pdMainImg" src="${imgs[0]}">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:60px;">${catIcon(p.cat)}</div>`;
+  const thumbsHtml = imgs.length > 1 ? `
+    <div class="pd-thumbs" id="pdThumbs">
+      ${imgs.map((src,i)=>`<img src="${src}" class="${i===0?'active':''}" onclick="setDetailImage(${i})">`).join('')}
+    </div>` : '';
+  sheet.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="pd-img">${mainImgHtml}</div>
+    ${thumbsHtml}
+    <div class="pd-cat">${catName(p.cat)}</div>
+    <div class="pd-name">${p.name}</div>
+    <div class="pd-price-row">
+      <span class="pd-price">${fmt(p.price)} د.ع</span>
+      ${p.oldPrice ? `<span class="pd-old">${fmt(p.oldPrice)} د.ع</span>` : ''}
+      ${p.discount ? `<span class="p-badge" style="position:static;">-${p.discount}%</span>` : ''}
+    </div>
+    <div class="pd-desc">${p.desc || 'لا يوجد وصف لهذا المنتج بعد.'}</div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="editProduct('${p.id}')">تعديل</button>
+      <button class="btn btn-primary" style="background:#25D366" onclick="contactWhatsapp('${p.id}')">💬 تواصل عبر واتساب</button>
+    </div>
+  `;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function setDetailImage(i){
+  const imgs = window.currentDetailImages || [];
+  const mainEl = document.getElementById('pdMainImg');
+  if(mainEl && imgs[i]) mainEl.src = imgs[i];
+  document.querySelectorAll('#pdThumbs img').forEach((el,idx)=> el.classList.toggle('active', idx===i));
+}
+
+
+function contactWhatsapp(id){
+  const p = products.find(x=>x.id===id);
+  const number = (p && p.whatsapp) ? p.whatsapp : settings.whatsapp;
+  if(!number){ showToast('الرجاء إضافة رقم واتساب من إدارة المتجر'); return; }
+  const text = encodeURIComponent(`مرحباً، أنا مهتم بمنتج: ${p ? p.name : ''}`);
+  window.open(`https://wa.me/${number}?text=${text}`, '_blank');
+}
+function contactCall(){
+  if(!settings.phone){ showToast('الرجاء إضافة رقم الهاتف من إدارة المتجر'); return; }
+  window.location.href = `tel:${settings.phone}`;
+}
+
+function deleteProduct(id){
+  if(!confirm('هل تريد حذف هذا المنتج؟')) return;
+  db.collection('products').doc(id).delete()
+    .then(()=> showToast('تم حذف المنتج'))
+    .catch(err=>{ console.error(err); showToast('صار خطأ، حاول مرة ثانية'); });
+}
+
+/* ---- Add / Edit form ---- */
+function populateCatSelect(){
+  const sel = document.getElementById('pCat');
+  sel.innerHTML = CATEGORIES.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+let pendingImages = [];
+
+function renderImgGrid(){
+  const grid = document.getElementById('imgGrid');
+  grid.innerHTML = pendingImages.map((src,i)=>`
+    <div class="img-thumb">
+      <img src="${src}">
+      <div class="remove-btn" onclick="removePendingImage(${i})">✕</div>
+    </div>
+  `).join('');
+}
+
+function removePendingImage(i){
+  pendingImages.splice(i,1);
+  renderImgGrid();
+}
+
+function openAddProduct(){
+  document.getElementById('formTitle').textContent = 'إضافة منتج جديد';
+  document.getElementById('productForm').reset();
+  document.getElementById('editId').value = '';
+  pendingImages = [];
+  renderImgGrid();
+  populateCatSelect();
+  document.getElementById('formOverlay').classList.add('open');
+}
+
+function editProduct(id){
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+  closeSheet('detailOverlay');
+  document.getElementById('formTitle').textContent = 'تعديل المنتج';
+  populateCatSelect();
+  document.getElementById('editId').value = p.id;
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pCat').value = p.cat;
+  document.getElementById('pPrice').value = p.price;
+  document.getElementById('pOldPrice').value = p.oldPrice || '';
+  document.getElementById('pDiscount').value = p.discount || '';
+  document.getElementById('pDesc').value = p.desc || '';
+  document.getElementById('pWhatsapp').value = p.whatsapp || '';
+  pendingImages = getProductImages(p).slice();
+  renderImgGrid();
+  document.getElementById('formOverlay').classList.add('open');
+}
+
+function handleImage(e){
+  const files = Array.from(e.target.files || []);
+  if(!files.length) return;
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      pendingImages.push(ev.target.result);
+      renderImgGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function saveProduct(e){
+  e.preventDefault();
+  const id = document.getElementById('editId').value;
+  const data = {
+    name: document.getElementById('pName').value.trim(),
+    cat: document.getElementById('pCat').value,
+    price: Number(document.getElementById('pPrice').value || 0),
+    oldPrice: Number(document.getElementById('pOldPrice').value || 0) || null,
+    discount: Number(document.getElementById('pDiscount').value || 0) || null,
+    desc: document.getElementById('pDesc').value.trim(),
+    whatsapp: document.getElementById('pWhatsapp').value.trim(),
+    imgs: pendingImages,
+    img: firebase.firestore.FieldValue.delete()
+  };
+  const ref = id ? db.collection('products').doc(id) : db.collection('products').doc();
+  ref.set(data, {merge:true})
+    .then(()=>{
+      showToast(id ? 'تم تحديث المنتج' : 'تمت إضافة المنتج');
+      closeSheet('formOverlay');
+    })
+    .catch(err=>{
+      console.error(err);
+      showToast('تعذر حفظ المنتج — قلّل عدد أو حجم الصور وحاول مرة ثانية');
+    });
+}
+
+/* ---- Admin settings ---- */
+function openAdmin(){
+  document.getElementById('storeWhatsapp').value = settings.whatsapp || '';
+  document.getElementById('storePhone').value = settings.phone || '';
+  document.getElementById('adminOverlay').classList.add('open');
+}
+function saveStoreSettings(){
+  const whatsapp = document.getElementById('storeWhatsapp').value.trim();
+  const phone = document.getElementById('storePhone').value.trim();
+  db.collection('settings').doc('store').set({whatsapp, phone}, {merge:true})
+    .then(()=>{
+      showToast('تم حفظ الإعدادات');
+      closeSheet('adminOverlay');
+    })
+    .catch(err=>{ console.error(err); showToast('صار خطأ، حاول مرة ثانية'); });
+}
+
+/* ---- Tabs / overlays ---- */
+function setTab(tab){
+  state.tab = tab;
+  setTabUI(tab);
+  if(tab === 'admin'){ openAdmin(); state.tab='home'; setTabUI('home'); return; }
+  if(tab === 'cats'){
+    document.getElementById('gridTitle').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  renderProducts();
+}
+function setTabUI(tab){
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.classList.toggle('active', n.dataset.tab===tab);
+  });
+}
+function closeSheet(id){ document.getElementById(id).classList.remove('open'); }
+function closeOnOverlay(e,id){ if(e.target.id===id) closeSheet(id); }
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+/* init: auth.onAuthStateChanged (above) handles showing the right screen */
+</script>
+</body>
+</html>
